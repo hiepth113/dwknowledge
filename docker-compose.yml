@@ -13,7 +13,7 @@ services:
       - PAUSE_MS=800
       - CONCURRENCY=3
       - SCOPE_PREFIX=/docs/
-      - START_URL=https://knowledgecenter.docuware.com/
+      - START_URL=https://knowledgecenter.docuware.com/docs/
     command: ["node", "export-docuware.mjs"]
     restart: "no"
 
