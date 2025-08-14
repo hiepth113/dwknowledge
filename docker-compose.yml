@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  crawler:
+    # Build image có sẵn Chromium + Playwright + script
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docuware-crawler:latest
+    # Thư mục chứa PDF xuất ra (đổi đường dẫn host nếu muốn)
+    volumes:
+      - ./pdf-out:/app/pdf-out
+    environment:
+      # Tinh chỉnh tốc độ/lịch sự khi crawl
+      - PAUSE_MS=800
+      - CONCURRENCY=3
+      # Giới hạn phạm vi URL (mặc định /docs/)
+      - SCOPE_PREFIX=/docs/
+      - START_URL=https://knowledgecenter.docuware.com/
+    # Chạy 1 lần rồi thoát; khi cần chạy lại, “Re-deploy the stack”
+    command: ["node", "export-docuware.mjs"]
+    restart: "no"
+
+  # (Tùy chọn) Scheduler để chạy hằng ngày (08:00) bằng Ofelia
+  ofelia:
+    image: mcuadros/ofelia:latest
+    depends_on:
+      - crawler
+    command: ["daemon", "--docker"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    labels:
+      # Chạy container crawler như 1 job mỗi ngày 08:00
+      - ofelia.job-run.crawl.schedule=0 8 * * *
+      - ofelia.job-run.crawl.image=docuware-crawler:latest
+      - ofelia.job-run.crawl.volume=./pdf-out:/app/pdf-out
+      - ofelia.job-run.crawl.env=PAUSE_MS=800,CONCURRENCY=3,SCOPE_PREFIX=/docs/,START_URL=https://knowledgecenter.docuware.com/
